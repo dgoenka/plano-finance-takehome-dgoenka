@@ -7,6 +7,7 @@ import {
   Param,
   Post,
   Put,
+  Query,
   Res,
 } from '@nestjs/common';
 import { UserService } from './user';
@@ -16,7 +17,7 @@ const DEFAULT_USER_INITIALISERS = {
   blocked: false,
 };
 
-@Controller('user')
+@Controller('users')
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
@@ -33,7 +34,6 @@ export class UserController {
         user,
       });
     } catch (err) {
-      console.error(err);
       return response.status(HttpStatus.BAD_REQUEST).json({
         success: false,
         statusCode: 400,
@@ -77,16 +77,32 @@ export class UserController {
     }
   }
 
+  @Get('/search')
+  async search(@Res() response, @Query() query: Record<string, unknown>) {
+    try {
+      const user = await this.userService.find(query);
+      return response.status(HttpStatus.OK).json({
+        message: 'User(s) found successfully',
+        user,
+      });
+    } catch (err) {
+      return response.status(404).json({ success: false, ...err.response });
+    }
+  }
+
   @Get('/:id')
   async getUser(@Res() response, @Param('id') id: string) {
     try {
       const user = await this.userService.getUser(id);
       return response.status(HttpStatus.OK).json({
-        message: 'User found successfully',
+        response: true,
+        message: 'User retrieved successfully',
         user,
       });
     } catch (err) {
-      return response.status(err.status).json(err.response);
+      return response
+        .status(err.status)
+        .json({ success: false, ...err.response });
     }
   }
 

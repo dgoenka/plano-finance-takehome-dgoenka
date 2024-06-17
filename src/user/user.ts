@@ -4,6 +4,7 @@ import { Model, UpdateQuery } from 'mongoose';
 import { CreateUserDto, UpdateUserDto } from './createuserdto';
 import { isEmpty } from 'lodash';
 import { IUser } from './user.schema';
+import { calculateMaxDate, calculateMinDate } from '../utils/DateUtils';
 
 @Injectable()
 export class UserService {
@@ -45,27 +46,40 @@ export class UserService {
     return this.userModel.find().exec();
   }
 
-  async find(id: string): Promise<IUser> {
-    const existingStudent = await this.userModel.findById(id).exec();
-    if (!existingStudent) {
-      throw new NotFoundException(`User #${id} not found`);
-    }
-    return existingStudent;
-  }
-
-  async getUser(params): Promise<IUser[]> {
+  async find({
+    username = '',
+    birthdate = '',
+    minAge: minAgeInParams = null,
+    maxAge: maxAgeInParams = null,
+  } = {}): Promise<IUser[]> {
+    const minAge = !isNaN(minAgeInParams) ? Number(minAgeInParams) : null;
+    const maxAge = !isNaN(maxAgeInParams) ? Number(maxAgeInParams) : null;
     const existingStudents = await this.userModel
       .find({
-        $and: [
-          ...(params.username ? [{ username: params.username }] : []),
-          ...(params.birthdate ? [{ birthdate: params.birthdate }] : []),
-        ],
+        ...(!isEmpty(username) ? { username } : {}),
+        ...(!isEmpty(birthdate) ? { birthdate } : {}),
+        ...(Number.isFinite(minAge) || Number.isFinite(maxAge)
+          ? {
+              birthdate: {
+                $gte: calculateMinDate(maxAge),
+                $lte: calculateMaxDate(minAge),
+              },
+            }
+          : {}),
       })
       .exec();
     if (isEmpty(existingStudents)) {
       throw new NotFoundException(`No users not found`);
     }
     return existingStudents;
+  }
+
+  async getUser(id): Promise<IUser> {
+    const existingStudent = await this.userModel.findById(id).exec();
+    if (isEmpty(existingStudent)) {
+      throw new NotFoundException(`User #${id} not found`);
+    }
+    return existingStudent;
   }
 
   async deleteUser(id: string): Promise<IUser> {
