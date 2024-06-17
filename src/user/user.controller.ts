@@ -28,12 +28,14 @@ export class UserController {
         ...createStudentDto,
       });
       return response.status(HttpStatus.CREATED).json({
+        success: true,
         message: 'User has been created successfully',
         user,
       });
     } catch (err) {
       console.error(err);
       return response.status(HttpStatus.BAD_REQUEST).json({
+        success: false,
         statusCode: 400,
         message: `Error: User not created!${err.message ? ' Message: ' + err.message : ''}`,
         error: 'Bad Request',
@@ -63,11 +65,15 @@ export class UserController {
     try {
       const studentData = await this.userService.findAll();
       return response.status(HttpStatus.OK).json({
+        success: true,
         message: 'All users retrieved successfully',
         studentData,
       });
     } catch (err) {
-      return response.status(err.status).json(err.response);
+      return response.status(err.status).json({
+        success: false,
+        ...err.response,
+      });
     }
   }
 
@@ -89,11 +95,15 @@ export class UserController {
     try {
       const user = await this.userService.deleteUser(studentId);
       return response.status(HttpStatus.OK).json({
+        success: true,
         message: 'User deleted successfully',
         user,
       });
     } catch (err) {
-      return response.status(err.status).json(err.response);
+      return response.status(err.status).json({
+        success: false,
+        ...err.response,
+      });
     }
   }
 }
